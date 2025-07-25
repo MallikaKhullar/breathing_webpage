@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poiret+One&display=swap" rel="stylesheet">
+  <title>Rahul's Breathing Companion</title>
+  <style>
+    body {
+      font-family: 'Poiret One', cursive; /* Using Inter font */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+      /* Removed background color */
+      color: #1e3a8a; /* Keeping a default text color */
+    }
+    h1 {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      text-align: center;
+      /* Removed background color */
+      padding: 1rem 0;
+      z-index: 10;
+      /* Removed h1 specific color, inherits from body or default */
+      font-size: 4rem;
+      font-weight: 600;
+    }
+    #app {
+      margin-top: 130px; /* Reduced margin-top to decrease gap */
+      width: 100%;
+    }
+    .mood-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+      width: 100%;
+      max-width: 500px;
+      padding: 1rem;
+      margin: 0 auto;
+    }
+    button {
+      padding: 1rem;
+      font-family: 'Poiret One', cursive; /* Using Inter font */
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+    button:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+    .instruction {
+      text-align: center;
+      padding: 2rem;
+      min-height: 300px;
+      font-size: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      color: #1e40af;
+    }
+    .bubble {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #60a5fa, #1e3a8a);
+      margin: 2rem auto;
+      transition: transform 1s ease-in-out, opacity 1s ease-in-out;
+    }
+    .inhale, .hold, .exhale {
+      animation: pulseHold 1.5s infinite;
+      transform: scale(1.15);
+      opacity: 0.7;
+    }
+    @keyframes pulseHold {
+      0% { transform: scale(1.2); }
+      50% { transform: scale(1.25); }
+      100% { transform: scale(1.2); }
+    }
+    /* Elements that will be toggled with display: none */
+    .message, .start-text, #action, #progress-container, .back-button {
+      opacity: 0; /* Initial opacity for fade-in/out */
+      transition: opacity 0.5s ease; /* Transition for opacity */
+    }
+
+    .message {
+      max-width: 70%; /* Limit to 50% of screen width */
+      margin: 0 auto;
+    }
+
+    .start-text{
+      max-width: 70%; /* Limit to 50% of screen width */
+      margin: 0 auto;
+    }
+    .hidden-display {
+      display: none; /* Class to completely hide from layout */
+    }
+
+    /* Override for specific elements that have other transitions */
+    .back-button {
+      transition: all 0.5s ease; /* Keep original transition for back-button */
+      font-family: 'Poiret One', cursive; /* Using Inter font */
+      width: 550px; /* Set a static width for the button */
+
+
+    }
+
+    @keyframes fadeMessage {
+      0% { opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    
+    .bubble-grow {
+      transform: scale(0.2);
+      animation: growBubble 3s forwards;
+    }
+    @keyframes growBubble {
+      to {
+        transform: scale(1);
+      }
+    }
+    .progress-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200px;
+      height: 200px;
+    }
+    .progress-ring__circle {
+      stroke-width: 6;
+      fill: transparent;
+      transition: stroke-dashoffset 0.2s linear;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    @keyframes wave {
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(-25deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    /* New styles for bigger inhale/exhale text and subtle animation */
+    #action {
+      font-size: 3rem; /* Made text bigger */
+      margin-bottom: 1rem; /* Added margin for spacing */
+      color: #1e40af;
+      font-weight: 600;
+      animation: floatText 4s ease-in-out infinite; /* Apply subtle float animation */
+    }
+
+    @keyframes floatText {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); } /* Moves up subtly */
+      100% { transform: translateY(0px); }
+    }
+  </style>
+  <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js" type="module"></script>
+</head>
+<body>
+  <h1 id="main-title">Rahul's Breathing Companion</h1>
+  <div id="app" style="opacity: 0; transition: opacity 1s ease;"></div>
+
+<div id="breathing-container" style="display: none; margin-top: 70px;"> <!-- Reduced margin-top to decrease gap -->
+  <div class="instruction">
+    <div class="message hidden-display"></div>
+    <div class="start-text hidden-display"></div>
+    <h3 id="action" class="hidden-display">    </h3>
+    <div id="progress-container" style="position: relative; width: 200px; height: 200px; margin: 0 auto 1rem; display: flex; justify-content: center; align-items: center;" class="hidden-display">
+      <svg class="progress-ring" id="progress-ring" width="200" height="200">
+        <circle class="progress-ring__circle" stroke="blue" stroke-width="6" fill="transparent" r="90" cx="100" cy="100" />
+      </svg>
+      <!-- Lottie animation directly inside progress-container, adjusted size and position -->
+      <dotlottie-wc
+        src="https://lottie.host/791ac11b-75b4-4345-b3c0-bfeeed1d6596/yzOrPL6BqO.lottie"
+        style="width:150%; height: 75%; object-fit: contain; position: absolute;"
+        speed="1"
+        autoplay
+        loop
+      ></dotlottie-wc>
+    </div>
+    <button class="back-button hidden-display" onclick="resetApp()">I'm feeling better. Take me back</button>
+  </div>
+</div>
+
+<script>
+ const moods = [
+  {
+    name: "Calm Anxiety",
+    titleAction: "calm anxiety",
+    message: "Let's calm down together with some box breathing.",
+    instruction: "Inhale for 4s, hold for 4s, exhale for 4s, then hold for 4s. Repeat this cycle. Ready?",
+    pattern: [
+      { action: "Inhale", duration: 4 },
+      { action: "Hold", duration: 4 },
+      { action: "Exhale", duration: 4 },
+      { action: "Hold", duration: 4 }
+    ]
+  },
+  {
+    name: "Fall Asleep",
+    titleAction: "fall asleep",
+    message: "Let yourself slow down with some deep rhythm breathing. ",
+    instruction: "Inhale for 4 seconds, hold your breath for 7s, then exhale slowly for 8s. This pattern helps you relax. Ready?",
+    pattern: [
+      { action: "Inhale", duration: 4 },
+      { action: "Hold", duration: 7 },
+      { action: "Slow exhale", duration: 8 }
+    ]
+  },
+  {
+    name: "Release Anger",
+    titleAction: "release anger",
+    message: "Let's shake off that tension with Lion's Breath. ",
+    instruction: "Take a deep breath in for 4s, then exhale forcefully with a 'HA' sound and your tongue out for 4s. Let the tension go. Ready?",
+    pattern: [
+      { action: "Deep breath", duration: 4 },
+      { action: "Exhale forcefully", duration: 4 }
+    ]
+  },
+  {
+    name: "Increase Energy",
+    titleAction: "increase energy",
+    message: "Get pumped with some Bellows Breath.",
+    instruction: "Take powerful inhales and forceful exhales for 1s each. This rapid breathing will energize you. Ready?",
+    pattern: [
+      { action: "Powerful inhale", duration: 1 },
+      { action: "Forceful exhale", duration: 1 }
+      // Typically done continuously for 30 seconds – app could handle this via looping.
+    ]
+  },
+  {
+    name: "Improve Focus",
+    titleAction: "improve focus",
+    message: "Restore your mental clarity with Alternate Nostril Breathing. ",
+    instruction: "Alternate breathing through each nostril: inhale left for 4s, exhale right for 4s, then inhale right for 4s, exhale left for 4s. Ready?",
+    pattern: [
+      { action: "Inhale (left nostril)", duration: 4 },
+      { action: "Exhale (right nostril)", duration: 4 },
+      { action: "Inhale (right nostril)", duration: 4 },
+      { action: "Exhale (left nostril)", duration: 4 }
+    ]
+  },
+  {
+    name: "Soothe Sadness",
+    titleAction: "soothe sadness",
+    message: "Let's soften heavy emotions with gentle extended exhales.",
+    instruction: "Inhale gently for 4s, then exhale slowly for 6s. The longer exhale helps release heavy emotions. Ready?",
+    pattern: [
+      { action: "Inhale", duration: 4 },
+      { action: "Exhale slowly", duration: 6 }
+    ]
+  },
+  {
+    name: "Build Resilience",
+    titleAction: "build resilience",
+    message: "Train your body and mind with the Wim Hof method",
+    instruction: "Take quick, powerful breaths - inhale for 1s, exhale for 1s. This builds mental and physical resilience. Ready?",
+    pattern: [
+      { action: "Inhale", duration: 1 },
+      { action: "Exhale", duration: 1 }
+      // This repeats for 30 cycles before a long hold and recovery breath. Add separate round logic if needed.
+    ]
+  },
+  {
+    name: "Feel Present",
+    titleAction: "feel present",
+    message: "Ground yourself in the moment with some mindful breathing",
+    instruction: "Take deep inhales for 5s, hold for 5s, then exhale for 5s. Focus on each breath to stay present. Ready?",
+    pattern: [
+      { action: "Deep inhale", duration: 5 },
+      { action: "Hold", duration: 5 },
+      { action: "Exhale", duration: 5 }
+    ]
+  }
+];
+
+    let selectedMood = null;
+    let stepIndex = 0;
+    let timer = 0;
+    let interval = null;
+    let roundProgress = 0;
+    let roundCount = 0;
+    const colors = ["#60a5fa", "#1e40af"]; // Light blue and Dark blue for high contrast
+    let activeCircle = null;
+    let totalRoundDuration = 0;
+
+    function selectMood(mood) {
+      console.log("selectMood", mood);
+      selectedMood = mood;
+      stepIndex = 0;
+      timer = selectedMood.pattern[0].duration;
+      totalRoundDuration = selectedMood.pattern.reduce((sum, step) => sum + step.duration, 0);
+      roundProgress = 0;
+      roundCount = 0;
+      document.getElementById("main-title").textContent = `Rahul's Breathing Companion: ${mood.titleAction}`;
+
+      
+      // Hide the mood selection
+      document.getElementById("app").innerHTML = ''; // Clear content
+      
+      // Show container and fade in the message
+      document.getElementById("breathing-container").style.display = "block";
+      const messageEl = document.querySelector(".message");
+      messageEl.textContent = mood.message;
+      
+      // Remove hidden-display, then set opacity for fade-in
+      setTimeout(() => {
+        messageEl.classList.remove('hidden-display');
+        messageEl.style.opacity = "1";
+      }, 100);
+      
+      // After 3 seconds, fade out message and prepare for breathing sequence
+      setTimeout(() => {
+        messageEl.style.opacity = "0";
+        setTimeout(() => {
+          messageEl.classList.add('hidden-display'); // Hide after fade out
+          startBreathing();
+        }, 500); // Wait for message fade out to complete (0.5s transition)
+      }, 6000);
+    }
+
+    function startBreathing() {
+      console.log("startBreathing");
+      const ring = document.getElementById("progress-ring");
+      ring.innerHTML = ""; // clear previous content
+      
+      // Create the first circle for the first round
+      createNewProgressCircle();
+      
+      stepIndex = 0;
+      timer = selectedMood.pattern[0].duration;
+      roundProgress = 0;
+      
+      // Ensure all breathing elements are initially hidden for sequencing
+      const startTextEl = document.querySelector(".start-text");
+      const progressContainer = document.getElementById("progress-container");
+      const actionEl = document.getElementById("action");
+      const backButton = document.querySelector(".back-button");
+
+      startTextEl.style.opacity = "0";
+      progressContainer.style.opacity = "0";
+      actionEl.style.opacity = "0";
+      backButton.style.opacity = "0";
+
+      startTextEl.classList.add('hidden-display');
+      progressContainer.classList.add('hidden-display');
+      actionEl.classList.add('hidden-display');
+      backButton.classList.add('hidden-display');
+
+
+      // Step 1: Show the specific breathing instruction for this mood
+      startTextEl.textContent = selectedMood.instruction;
+      setTimeout(() => {
+        startTextEl.classList.remove('hidden-display'); // Ensure it's visible for fade-in
+        startTextEl.style.opacity = "1";
+      }, 100); // Small delay to ensure display property is set
+
+      // Step 2: After 5 seconds, hide the instruction and show breathing elements
+      setTimeout(() => {
+        startTextEl.style.opacity = "0"; // Fade out instruction
+        setTimeout(() => {
+          startTextEl.classList.add('hidden-display'); // Hide after fade out
+          
+          // After fade out, show breathing elements
+          progressContainer.classList.remove('hidden-display');
+          actionEl.classList.remove('hidden-display');
+          backButton.classList.remove('hidden-display');
+
+          // Small delay to ensure display:block takes effect before opacity transition
+          setTimeout(() => {
+            progressContainer.style.opacity = "1";
+            actionEl.style.opacity = "1";
+            backButton.style.opacity = "1";
+            interval = setInterval(tick, 200); // Start the breathing tick
+          }, 50); // Very small delay
+        }, 500); // Wait for .start-text fade out transition (0.5s)
+      }, 7000); // Show instruction for 5 seconds
+    }
+
+    function createNewProgressCircle() {
+      const ring = document.getElementById("progress-ring");
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("r", "90");
+      circle.setAttribute("cx", "100");
+      circle.setAttribute("cy", "100");
+      circle.setAttribute("fill", "transparent");
+      circle.setAttribute("stroke-width", "6");
+      circle.setAttribute("stroke", colors[roundCount % colors.length]);
+      circle.setAttribute("class", "progress-ring__circle");
+      
+      const radius = 90;
+      const circumference = 2 * Math.PI * radius;
+      circle.setAttribute("stroke-dasharray", `${circumference} ${circumference}`);
+      circle.setAttribute("stroke-dashoffset", circumference);
+      
+      ring.appendChild(circle);
+      activeCircle = circle;
+    }
+
+    function tick() {
+      timer -= 0.2;
+      roundProgress += 0.2;
+      
+      if (timer <= 0) {
+        stepIndex = (stepIndex + 1) % selectedMood.pattern.length;
+        timer = selectedMood.pattern[stepIndex].duration;
+        
+        if (stepIndex === 0) {
+          // Complete the current round's progress first
+          renderBreathingStep(); // This will show 100% completion
+          
+          // Then start new round
+          roundProgress = 0;
+          roundCount++;
+          createNewProgressCircle();
+        }
+      }
+      renderBreathingStep();
+    }
+
+    function renderBreathingStep() {
+      const step = selectedMood.pattern[stepIndex];
+      const actionEl = document.getElementById("action");
+      actionEl.textContent = step.action;
+
+      const radius = 90;
+      const circumference = 2 * Math.PI * radius;
+      
+      // Calculate progress for current round - ensure it doesn't exceed 1
+      const progress = Math.min(roundProgress / totalRoundDuration, 1);
+      const offset = circumference - progress * circumference;
+      
+      if (activeCircle) {
+        activeCircle.setAttribute("stroke-dashoffset", offset);
+      }
+    }
+
+    function resetApp() {
+      console.log("reset app");
+      clearInterval(interval);
+      selectedMood = null;
+      roundCount = 0;
+      
+      // Fade out breathing interface elements and then hide them completely
+      const startTextEl = document.querySelector(".start-text");
+      const messageEl = document.querySelector(".message");
+      const progressContainer = document.getElementById("progress-container");
+      const actionEl = document.getElementById("action");
+      const backButton = document.querySelector(".back-button");
+      actionEl.textContent = "";
+      startTextEl.style.opacity = "0";
+      messageEl.style.opacity = "0";
+      progressContainer.style.opacity = "0";
+      actionEl.style.opacity = "0";
+      backButton.style.opacity = "0";
+      
+      document.getElementById("main-title").textContent = "Rahul's Breathing Companion";
+
+      setTimeout(() => {
+        startTextEl.classList.add('hidden-display');
+        messageEl.classList.add('hidden-display');
+        progressContainer.classList.add('hidden-display');
+        actionEl.classList.add('hidden-display');
+        backButton.classList.add('hidden-display');
+        
+        document.getElementById("breathing-container").style.display = "none";
+        const app = document.getElementById("app");
+        app.style.opacity = 0;
+        // Rebuild the mood grid dynamically
+        app.innerHTML = `<div class="mood-grid" style="opacity: 0; transition: opacity 1s ease;">
+          ${moods.map((mood, index) => `<button onclick='selectMood(moods[${index}])'>${mood.name}</button>`).join('')}
+        </div>`;
+        setTimeout(() => {
+          const grid = document.querySelector(".mood-grid");
+          if (grid) {
+            grid.style.opacity = 1;
+            app.style.opacity = 1;
+          }
+        }, 100);
+      }, 500); // Wait for fade out to complete before setting display: none
+    }
+
+    window.onload = () => {
+      const app = document.getElementById("app");
+      // Initial build of the mood grid
+      app.innerHTML = `<div class="mood-grid" style="opacity: 0; transition: opacity 1s ease;">
+        ${moods.map((mood, index) => `<button onclick='selectMood(moods[${index}])'>${mood.name}</button>`).join('')}
+      </div>`;
+      setTimeout(() => {
+        const grid = document.querySelector(".mood-grid");
+        if (grid) {
+          app.style.opacity = 1;
+          grid.style.opacity = 1;
+        }
+      }, 100);
+    }
+</script>
+</body>
+</html>
